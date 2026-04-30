@@ -37,3 +37,13 @@ user stories:
 **Given** an exchange rate of 1GBP to 1.11EUR<br/>
 **When** I hit a specified endpoint to get a list of products<br/>
 **Then** I will get the products and their price(s) returned
+
+## Notes
+
+A short pointer to the structural choices, since the brief explicitly asks how I work.
+
+- Exchange rates live in `appsettings.json` under `ExchangeRates:Rates` and are bound via `IOptions<ExchangeRateOptions>`, so a live FX provider can replace the static one without a code change to the controller, service, or tests.
+- Prices are rounded to 2dp with banker's rounding (`MidpointRounding.ToEven`) to minimise bias when rounded values are aggregated.
+- `IProductService` was extracted as a pure refactor commit *before* currency conversion was added, so the feature commit dropped cleanly into the seam — controller stays a thin HTTP handler.
+- `Currency` is exposed as a typed query parameter (`?currency=EUR`) with `JsonStringEnumConverter`, so unknown values are rejected at model binding with `400`. No manual validation needed.
+- Tests use hand-rolled stubs rather than a mocking library; the test surface is small enough to read inline.

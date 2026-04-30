@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Greggs.Products.Api.Controllers;
-using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Models;
+using Greggs.Products.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -12,38 +12,38 @@ namespace Greggs.Products.UnitTests.Controllers;
 public class ProductControllerTests
 {
     [Fact]
-    public void Get_WithDefaultPaging_PassesDefaultsToDataAccess()
+    public void Get_WithDefaultPaging_PassesDefaultsToService()
     {
-        var dataAccess = new RecordingProductDataAccess();
-        var controller = NewController(dataAccess);
+        var service = new RecordingProductService();
+        var controller = NewController(service);
 
         controller.Get();
 
-        Assert.Equal(0, dataAccess.LastPageStart);
-        Assert.Equal(5, dataAccess.LastPageSize);
+        Assert.Equal(0, service.LastPageStart);
+        Assert.Equal(5, service.LastPageSize);
     }
 
     [Fact]
-    public void Get_WithCustomPaging_PassesParametersToDataAccess()
+    public void Get_WithCustomPaging_PassesParametersToService()
     {
-        var dataAccess = new RecordingProductDataAccess();
-        var controller = NewController(dataAccess);
+        var service = new RecordingProductService();
+        var controller = NewController(service);
 
         controller.Get(pageStart: 2, pageSize: 3);
 
-        Assert.Equal(2, dataAccess.LastPageStart);
-        Assert.Equal(3, dataAccess.LastPageSize);
+        Assert.Equal(2, service.LastPageStart);
+        Assert.Equal(3, service.LastPageSize);
     }
 
     [Fact]
-    public void Get_WhenDataAccessReturnsProducts_ReturnsThemInBody()
+    public void Get_WhenServiceReturnsProducts_ReturnsThemInBody()
     {
         var products = new[]
         {
             new Product { Name = "Sausage Roll", PriceInPounds = 1m },
             new Product { Name = "Steak Bake", PriceInPounds = 1.2m }
         };
-        var controller = NewController(new RecordingProductDataAccess(products));
+        var controller = NewController(new RecordingProductService(products));
 
         var result = controller.Get();
 
@@ -55,9 +55,9 @@ public class ProductControllerTests
     }
 
     [Fact]
-    public void Get_WhenDataAccessReturnsEmpty_ReturnsEmpty()
+    public void Get_WhenServiceReturnsEmpty_ReturnsEmpty()
     {
-        var controller = NewController(new RecordingProductDataAccess());
+        var controller = NewController(new RecordingProductService());
 
         var result = controller.Get();
 
@@ -73,30 +73,30 @@ public class ProductControllerTests
     [InlineData(0, 101)]
     public void Get_WithInvalidPaging_ReturnsBadRequest(int pageStart, int pageSize)
     {
-        var dataAccess = new RecordingProductDataAccess();
-        var controller = NewController(dataAccess);
+        var service = new RecordingProductService();
+        var controller = NewController(service);
 
         var result = controller.Get(pageStart, pageSize);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
-        Assert.False(dataAccess.WasCalled);
+        Assert.False(service.WasCalled);
     }
 
-    private static ProductController NewController(IDataAccess<Product> dataAccess)
-        => new(dataAccess, NullLogger<ProductController>.Instance);
+    private static ProductController NewController(IProductService service)
+        => new(service, NullLogger<ProductController>.Instance);
 
-    private sealed class RecordingProductDataAccess : IDataAccess<Product>
+    private sealed class RecordingProductService : IProductService
     {
         private readonly IEnumerable<Product> _products;
 
-        public RecordingProductDataAccess(IEnumerable<Product> products = null)
+        public RecordingProductService(IEnumerable<Product> products = null)
             => _products = products ?? new List<Product>();
 
         public bool WasCalled { get; private set; }
-        public int? LastPageStart { get; private set; }
-        public int? LastPageSize { get; private set; }
+        public int LastPageStart { get; private set; }
+        public int LastPageSize { get; private set; }
 
-        public IEnumerable<Product> List(int? pageStart, int? pageSize)
+        public IEnumerable<Product> GetProducts(int pageStart, int pageSize)
         {
             WasCalled = true;
             LastPageStart = pageStart;

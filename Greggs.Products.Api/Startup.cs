@@ -1,5 +1,6 @@
 using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Pricing;
+using Greggs.Products.Api.Services;
 using Greggs.Products.Api.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -25,6 +26,7 @@ public class Startup
         services.AddSwaggerGen();
 
         services.AddSingleton<IDataAccess<Product>, ProductAccess>();
+        services.AddScoped<IProductService, ProductService>();
 
         services.Configure<ExchangeRateOptions>(_configuration.GetSection(ExchangeRateOptions.SectionName));
         services.AddSingleton<ICurrencyConverter, StaticRateCurrencyConverter>();

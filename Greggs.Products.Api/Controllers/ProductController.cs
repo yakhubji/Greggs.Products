@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Models;
+using Greggs.Products.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -12,12 +12,12 @@ public class ProductController : ControllerBase
 {
     private const int MaxPageSize = 100;
 
-    private readonly IDataAccess<Product> _productDataAccess;
+    private readonly IProductService _productService;
     private readonly ILogger<ProductController> _logger;
 
-    public ProductController(IDataAccess<Product> productDataAccess, ILogger<ProductController> logger)
+    public ProductController(IProductService productService, ILogger<ProductController> logger)
     {
-        _productDataAccess = productDataAccess;
+        _productService = productService;
         _logger = logger;
     }
 
@@ -27,6 +27,6 @@ public class ProductController : ControllerBase
         if (pageStart < 0 || pageSize <= 0 || pageSize > MaxPageSize)
             return BadRequest("Invalid paging parameters.");
 
-        return Ok(_productDataAccess.List(pageStart, pageSize));
+        return Ok(_productService.GetProducts(pageStart, pageSize));
     }
 }

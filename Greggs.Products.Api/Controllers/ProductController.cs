@@ -1,6 +1,5 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using Greggs.Products.Api.DataAccess;
 using Greggs.Products.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,30 +10,23 @@ namespace Greggs.Products.Api.Controllers;
 [Route("[controller]")]
 public class ProductController : ControllerBase
 {
-    private static readonly string[] Products = new[]
-    {
-        "Sausage Roll", "Vegan Sausage Roll", "Steak Bake", "Yum Yum", "Pink Jammie"
-    };
+    private const int MaxPageSize = 100;
 
+    private readonly IDataAccess<Product> _productDataAccess;
     private readonly ILogger<ProductController> _logger;
 
-    public ProductController(ILogger<ProductController> logger)
+    public ProductController(IDataAccess<Product> productDataAccess, ILogger<ProductController> logger)
     {
+        _productDataAccess = productDataAccess;
         _logger = logger;
     }
 
     [HttpGet]
-    public IEnumerable<Product> Get(int pageStart = 0, int pageSize = 5)
+    public ActionResult<IEnumerable<Product>> Get([FromQuery] int pageStart = 0, [FromQuery] int pageSize = 5)
     {
-        if (pageSize > Products.Length)
-            pageSize = Products.Length;
+        if (pageStart < 0 || pageSize <= 0 || pageSize > MaxPageSize)
+            return BadRequest("Invalid paging parameters.");
 
-        var rng = new Random();
-        return Enumerable.Range(1, pageSize).Select(index => new Product
-            {
-                PriceInPounds = rng.Next(0, 10),
-                Name = Products[rng.Next(Products.Length)]
-            })
-            .ToArray();
+        return Ok(_productDataAccess.List(pageStart, pageSize));
     }
 }

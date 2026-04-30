@@ -1,7 +1,9 @@
 using Greggs.Products.Api.DataAccess;
+using Greggs.Products.Api.Pricing;
 using Greggs.Products.Api.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -9,6 +11,13 @@ namespace Greggs.Products.Api;
 
 public class Startup
 {
+    private readonly IConfiguration _configuration;
+
+    public Startup(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddControllers();
@@ -16,6 +25,9 @@ public class Startup
         services.AddSwaggerGen();
 
         services.AddSingleton<IDataAccess<Product>, ProductAccess>();
+
+        services.Configure<ExchangeRateOptions>(_configuration.GetSection(ExchangeRateOptions.SectionName));
+        services.AddSingleton<ICurrencyConverter, StaticRateCurrencyConverter>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

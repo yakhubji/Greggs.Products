@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Greggs.Products.Api.Controllers;
 using Greggs.Products.Api.Models;
+using Greggs.Products.Api.Pricing;
 using Greggs.Products.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Greggs.Products.UnitTests.Controllers;
@@ -24,6 +24,28 @@ public class ProductControllerTests
     }
 
     [Fact]
+    public void Get_WithNoCurrencyParam_DefaultsToGbp()
+    {
+        var service = new RecordingProductService();
+        var controller = NewController(service);
+
+        controller.Get();
+
+        Assert.Equal(Currency.GBP, service.LastCurrency);
+    }
+
+    [Fact]
+    public void Get_WithEurCurrency_PassesItToService()
+    {
+        var service = new RecordingProductService();
+        var controller = NewController(service);
+
+        controller.Get(currency: Currency.EUR);
+
+        Assert.Equal(Currency.EUR, service.LastCurrency);
+    }
+
+    [Fact]
     public void Get_WithCustomPaging_PassesParametersToService()
     {
         var service = new RecordingProductService();
@@ -40,18 +62,19 @@ public class ProductControllerTests
     {
         var products = new[]
         {
-            new Product { Name = "Sausage Roll", PriceInPounds = 1m },
-            new Product { Name = "Steak Bake", PriceInPounds = 1.2m }
+            new ProductDto { Name = "Sausage Roll", Price = 1m,   Currency = Currency.GBP },
+            new ProductDto { Name = "Steak Bake",   Price = 1.2m, Currency = Currency.GBP }
         };
         var controller = NewController(new RecordingProductService(products));
 
         var result = controller.Get();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var body = Assert.IsAssignableFrom<IEnumerable<Product>>(ok.Value).ToList();
+        var body = Assert.IsAssignableFrom<IEnumerable<ProductDto>>(ok.Value).ToList();
         Assert.Equal(2, body.Count);
         Assert.Equal("Sausage Roll", body[0].Name);
-        Assert.Equal(1m, body[0].PriceInPounds);
+        Assert.Equal(1m, body[0].Price);
+        Assert.Equal(Currency.GBP, body[0].Currency);
     }
 
     [Fact]
@@ -62,7 +85,7 @@ public class ProductControllerTests
         var result = controller.Get();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var body = Assert.IsAssignableFrom<IEnumerable<Product>>(ok.Value);
+        var body = Assert.IsAssignableFrom<IEnumerable<ProductDto>>(ok.Value);
         Assert.Empty(body);
     }
 
@@ -82,25 +105,26 @@ public class ProductControllerTests
         Assert.False(service.WasCalled);
     }
 
-    private static ProductController NewController(IProductService service)
-        => new(service, NullLogger<ProductController>.Instance);
+    private static ProductController NewController(IProductService service) => new(service);
 
     private sealed class RecordingProductService : IProductService
     {
-        private readonly IEnumerable<Product> _products;
+        private readonly IEnumerable<ProductDto> _products;
 
-        public RecordingProductService(IEnumerable<Product> products = null)
-            => _products = products ?? new List<Product>();
+        public RecordingProductService(IEnumerable<ProductDto> products = null)
+            => _products = products ?? new List<ProductDto>();
 
         public bool WasCalled { get; private set; }
         public int LastPageStart { get; private set; }
         public int LastPageSize { get; private set; }
+        public Currency LastCurrency { get; private set; }
 
-        public IEnumerable<Product> GetProducts(int pageStart, int pageSize)
+        public IEnumerable<ProductDto> GetProducts(int pageStart, int pageSize, Currency currency)
         {
             WasCalled = true;
             LastPageStart = pageStart;
             LastPageSize = pageSize;
+            LastCurrency = currency;
             return _products;
         }
     }

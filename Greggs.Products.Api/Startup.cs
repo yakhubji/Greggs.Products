@@ -1,7 +1,8 @@
+using System.Text.Json.Serialization;
 using Greggs.Products.Api.DataAccess;
+using Greggs.Products.Api.Models;
 using Greggs.Products.Api.Pricing;
 using Greggs.Products.Api.Services;
-using Greggs.Products.Api.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +22,9 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
         services.AddSwaggerGen();
 
